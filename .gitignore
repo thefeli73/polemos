@@ -16,3 +16,5 @@
 
 #protect secrets
 *.env
+
+mtd_aws/.credentials
