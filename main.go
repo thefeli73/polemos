@@ -27,7 +27,7 @@ func main() {
 
 	for _, region := range config.AWS.Regions {
         fmt.Println("Listing instances in region:", region)
-		aws_config := mtd_aws.New_config(region)
+		aws_config := mtd_aws.New_config(region, config.AWS.Credentials_path)
         instances, err := mtd_aws.Instances(aws_config)
         if err != nil {
             fmt.Println("Error listing instances:", err)

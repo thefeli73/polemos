@@ -9,7 +9,8 @@ import (
 
 type Config struct {
     AWS struct {
-        Regions     []string `yaml:"regions"`
+        Regions          []string `yaml:"regions"`
+        Credentials_path   string `yaml:"credentials_path"`
     } `yaml:"aws"`
 }
 
