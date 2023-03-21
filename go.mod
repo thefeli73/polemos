@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.17.6
 	github.com/aws/aws-sdk-go-v2/config v1.18.17
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.90.0
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
+	github.com/google/uuid v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
