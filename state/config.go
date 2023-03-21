@@ -2,19 +2,46 @@ package state
 
 import (
 	"io/ioutil"
+	"net/netip"
 
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 )
 
-
+// Config contains all MTD services and cloud provider configs
 type Config struct {
-    AWS struct {
-        Regions          []string `yaml:"regions"`
-        Credentials_path   string `yaml:"credentials_path"`
-    } `yaml:"aws"`
+    MTD             mtdconf     `yaml:"mtd"`
+    AWS             aws         `yaml:"aws"`
 }
 
-func Load_conf(filename string) (Config, error) {
+type mtdconf struct {
+    Services        []service   `yaml:"services"`
+}
+type service struct {
+    ID              customUUID  `yaml:"id"`
+    ServiceID       string      `yaml:"cloud_id"`
+    EntryIP         netip.Addr  `yaml:"entry_ip"`
+    EntryPort       uint16      `yaml:"entry_port"`
+    ServiceIP       netip.Addr  `yaml:"service_ip"`
+    ServicePort     uint16      `yaml:"service_port"`
+}
+type customUUID uuid.UUID
+type aws struct {
+    Regions         []string    `yaml:"regions"`
+    CredentialsPath string      `yaml:"credentials_path"`
+}
+
+func (u *customUUID) UnmarshalYAML(value *yaml.Node) error {
+	id, err := uuid.Parse(value.Value)
+	if err != nil {
+		return err
+	}
+	*u = customUUID(id)
+	return nil
+}
+
+// LoadConf loads config from a yaml file
+func LoadConf(filename string) (Config, error) {
     var config Config
 
     data, err := ioutil.ReadFile(filename)
@@ -22,7 +49,7 @@ func Load_conf(filename string) (Config, error) {
         return config, err
     }
 
-    err = yaml.Unmarshal(data, &config)
+    err = yaml.Unmarshal([]byte(data), &config)
     if err != nil {
         return config, err
     }
