@@ -31,8 +31,13 @@ func NewConfig(region string, credentials string) aws.Config {
 	return cfg
 }
 
-// IndexInstances scans all configured regions for instances and add them to services
-func IndexInstances(config state.Config) []AwsInstance {
+// GetCloudID returns a string to find the instance based on information from aws
+func GetCloudID(instance AwsInstance) string {
+	return "aws_" + instance.Region + "_" + instance.InstanceID
+}
+
+// GetInstances scans all configured regions for instances and add them to services
+func GetInstances(config state.Config) []AwsInstance {
 	awsInstances := []AwsInstance{}
 	for _, region := range config.AWS.Regions {
 		awsConfig := NewConfig(region, config.AWS.CredentialsPath)
