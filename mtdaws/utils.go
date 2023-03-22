@@ -46,8 +46,6 @@ func GetInstances(config state.Config) []AwsInstance {
 			fmt.Println("Error listing instances:", err)
 			continue
 		}
-
-		//fmt.Println("Listing instances in region:", region)
 		for _, instance := range instances {
 			var publicAddr string
 			if instance.PublicIpAddress != nil {
@@ -66,6 +64,7 @@ func GetInstances(config state.Config) []AwsInstance {
 // PrintInstanceInfo prints info about a specific instance in a region
 func PrintInstanceInfo(instance *types.Instance) {
 	fmt.Println("\tInstance ID:", aws.ToString(instance.InstanceId))
+	fmt.Println("\t\tInstance DNS name:", aws.ToString(instance.PublicDnsName))
 	fmt.Println("\t\tInstance Type:", string(instance.InstanceType))
 	fmt.Println("\t\tAMI ID:", aws.ToString(instance.ImageId))
 	fmt.Println("\t\tState:", string(instance.State.Name))

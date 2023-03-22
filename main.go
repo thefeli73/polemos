@@ -38,6 +38,7 @@ func indexInstances(config state.Config) state.Config {
 		}
 		newService, found := indexInstance(config, cloudID, ip)
 		if !found {
+			fmt.Println("New instance found:", newService.CloudID)
 			config.MTD.Services = append(config.MTD.Services, newService)
 			state.SaveConf(ConfigPath, config)
 		}
