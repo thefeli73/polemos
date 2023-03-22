@@ -17,6 +17,7 @@ type Config struct {
 type mtdconf struct {
     Services        []service   `yaml:"services"`
 }
+
 type service struct {
     ID              customUUID  `yaml:"id"`
     ServiceID       string      `yaml:"cloud_id"`
@@ -25,7 +26,9 @@ type service struct {
     ServiceIP       netip.Addr  `yaml:"service_ip"`
     ServicePort     uint16      `yaml:"service_port"`
 }
+
 type customUUID uuid.UUID
+
 type aws struct {
     Regions         []string    `yaml:"regions"`
     CredentialsPath string      `yaml:"credentials_path"`
