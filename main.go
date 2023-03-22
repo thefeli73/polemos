@@ -36,15 +36,20 @@ func indexInstances(config state.Config) state.Config {
 			fmt.Println("Error converting ip:", err)
 			continue
 		}
-		config = indexInstance(config, cloudID, ip)
+		newService, found := indexInstance(config, cloudID, ip)
+		if !found {
+			config.MTD.Services = append(config.MTD.Services, newService)
+			state.SaveConf(ConfigPath, config)
+		}
 	}
 	return config
 }
 
-func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) state.Config {
+func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (state.Service, bool) {
+	found := false
 	for _, service := range config.MTD.Services {
 		if service.CloudID == cloudID {
-			return config
+			found = true
 		}
 	}
 	u := uuid.New()
@@ -52,7 +57,5 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) st
 		ID: state.CustomUUID(u),
 		CloudID: cloudID,
 		ServiceIP: serviceIP}
-	config.MTD.Services = append(config.MTD.Services, newService)
-	state.SaveConf(ConfigPath, config)
-	return config
+	return newService, found
 }
