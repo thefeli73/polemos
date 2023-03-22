@@ -77,11 +77,11 @@ func PrintInstanceInfo(instance *types.Instance) {
 }
 
 // Instances returns all instances for a config i.e. a region
-func Instances(config aws.Config) ([]*types.Instance, error) {
+func Instances(config aws.Config) ([]types.Instance, error) {
 	svc := ec2.NewFromConfig(config)
 
 	input := &ec2.DescribeInstancesInput{}
-	var instances []*types.Instance
+	var instances []types.Instance
 
 	paginator := ec2.NewDescribeInstancesPaginator(svc, input)
 
@@ -93,10 +93,9 @@ func Instances(config aws.Config) ([]*types.Instance, error) {
 
 		for _, reservation := range page.Reservations {
 			for _, instance := range reservation.Instances {
-				instances = append(instances, &instance)
+				instances = append(instances, instance)
 			}
 		}
 	}
-
 	return instances, nil
 }
