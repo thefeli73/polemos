@@ -20,14 +20,26 @@ func main() {
 	config := state.LoadConf(ConfigPath)
 	state.SaveConf(ConfigPath, config)
 
-	config = indexInstances(config)
+	config = indexAllInstances(config)
 
+	//TODO: figure out migration (MTD)
+	config = movingTargetDefense(config)
+
+	//TODO: proxy commands
 }
 
-func indexInstances(config state.Config) state.Config {
+func movingTargetDefense(config state.Config) state.Config{
+
+	mtdaws.AWSMoveInstance(config)
+	return config
+}
+
+func indexAllInstances(config state.Config) state.Config {
 	fmt.Println("Indexing instances")
 
 	//index AWS instances
+	awsNewInstanceCounter := 0
+	awsInstanceCounter := 0
 	awsInstances := mtdaws.GetInstances(config)
 	for _, instance := range awsInstances {
 		cloudID := mtdaws.GetCloudID(instance)
@@ -41,8 +53,13 @@ func indexInstances(config state.Config) state.Config {
 			fmt.Println("New instance found:", newService.CloudID)
 			config.MTD.Services = append(config.MTD.Services, newService)
 			state.SaveConf(ConfigPath, config)
+			awsNewInstanceCounter++
 		}
+		awsInstanceCounter++
 	}
+	fmt.Printf("Found %d AWS instances (%d newly added)\n", awsInstanceCounter, awsNewInstanceCounter)
+
+
 	return config
 }
 
