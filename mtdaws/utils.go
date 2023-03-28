@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -34,6 +36,17 @@ func NewConfig(region string, credentials string) aws.Config {
 // GetCloudID returns a string to find the instance based on information from aws
 func GetCloudID(instance AwsInstance) string {
 	return "aws_" + instance.Region + "_" + instance.InstanceID
+}
+
+// DecodeCloudID returns information to locate instance in aws
+func DecodeCloudID(cloudID string) (string, string) {
+	split := strings.Split(cloudID, "_")
+	if len(split) != 3 {
+		panic(cloudID + " does not decode as AWS CloudID")
+	}
+	region := split[1]
+	instanceID := split[2]
+	return region, instanceID
 }
 
 // GetInstances scans all configured regions for instances and add them to services
@@ -97,4 +110,70 @@ func Instances(config aws.Config) ([]types.Instance, error) {
 		}
 	}
 	return instances, nil
+}
+
+// createImage will create an AMI (amazon machine image) of a given instance
+func createImage(svc *ec2.Client, instanceID string) (string, error) {
+	input := &ec2.CreateImageInput{
+		InstanceId:  aws.String(instanceID),
+		Name:        aws.String(fmt.Sprintf("backup-%s-%d", instanceID, time.Now().Unix())),
+		Description: aws.String("Migration backup"),
+		NoReboot:    aws.Bool(true),
+	}
+
+	output, err := svc.CreateImage(context.TODO(), input)
+	if err != nil {
+		return "", err
+	}
+
+	return aws.ToString(output.ImageId), nil
+}
+
+// launchInstance launches a instance specified by id with parameters
+func launchInstance(svc *ec2.Client, instance *types.Instance, imageID string) (string, error) {
+	securityGroupIds := make([]string, len(instance.SecurityGroups))
+	for i, sg := range instance.SecurityGroups {
+		securityGroupIds[i] = aws.ToString(sg.GroupId)
+	}
+
+	input := &ec2.RunInstancesInput{
+		ImageId:         aws.String(imageID),
+		InstanceType:    instance.InstanceType,
+		MinCount:        aws.Int32(1),
+		MaxCount:        aws.Int32(1),
+		KeyName:         instance.KeyName,
+		SubnetId:        instance.SubnetId,
+		SecurityGroupIds: securityGroupIds,
+	}
+
+	output, err := svc.RunInstances(context.TODO(), input)
+	if err != nil {
+		return "", err
+	}
+
+	return aws.ToString(output.Instances[0].InstanceId), nil
+}
+
+// terminateInstance kills an instance by id
+func terminateInstance(svc *ec2.Client, instanceID string) error {
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: []string{instanceID},
+	}
+
+	_, err := svc.TerminateInstances(context.TODO(), input)
+	return err
+}
+
+// getInstanceDetailsFromString does what the name says
+func getInstanceDetailsFromString(svc *ec2.Client, instanceID string) (*types.Instance, error) {
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	}
+
+	output, err := svc.DescribeInstances(context.TODO(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &output.Reservations[0].Instances[0], nil
 }
