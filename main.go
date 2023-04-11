@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/mtdaws"
 	"github.com/thefeli73/polemos/state"
 )
@@ -39,6 +38,7 @@ func indexAllInstances(config state.Config) state.Config {
 
 	//index AWS instances
 	awsNewInstanceCounter := 0
+	awsRemovedInstanceCounter := 0
 	awsInstanceCounter := 0
 	awsInstances := mtdaws.GetInstances(config)
 	for _, instance := range awsInstances {
@@ -57,7 +57,8 @@ func indexAllInstances(config state.Config) state.Config {
 		}
 		awsInstanceCounter++
 	}
-	fmt.Printf("Found %d AWS instances (%d newly added)\n", awsInstanceCounter, awsNewInstanceCounter)
+	// TODO: Purge instances in config that are not found in the cloud
+	fmt.Printf("Found %d AWS instances (%d newly added, %d removed)\n", awsInstanceCounter, awsNewInstanceCounter, awsRemovedInstanceCounter)
 
 
 	return config
@@ -68,11 +69,10 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (s
 	for _, service := range config.MTD.Services {
 		if service.CloudID == cloudID {
 			found = true
+			break;
 		}
 	}
-	u := uuid.New()
 	newService := state.Service{
-		ID: state.CustomUUID(u),
 		CloudID: cloudID,
 		ServiceIP: serviceIP}
 	return newService, found

@@ -6,7 +6,6 @@ import (
 	"net/netip"
 	"os"
 
-	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,7 +21,6 @@ type mtdconf struct {
 
 // Service contains all necessary information about a service to identify it in the cloud as well as configuring a proxy for it
 type Service struct {
-    ID              CustomUUID  `yaml:"id"`
     CloudID         string      `yaml:"cloud_id"`
     EntryIP         netip.Addr  `yaml:"entry_ip"`
     EntryPort       uint16      `yaml:"entry_port"`
@@ -30,27 +28,9 @@ type Service struct {
     ServicePort     uint16      `yaml:"service_port"`
 }
 
-// CustomUUID is an alias for uuid.UUID to enable custom unmarshal function
-type CustomUUID uuid.UUID
-
 type aws struct {
     Regions         []string    `yaml:"regions"`
     CredentialsPath string      `yaml:"credentials_path"`
-}
-
-// UnmarshalYAML parses uuid in yaml to CustomUUID type
-func (u *CustomUUID) UnmarshalYAML(value *yaml.Node) error {
-	id, err := uuid.Parse(value.Value)
-	if err != nil {
-		return err
-	}
-	*u = CustomUUID(id)
-	return nil
-}
-
-// MarshalYAML parses CustomUUID type to uuid string for yaml 
-func (u CustomUUID) MarshalYAML() (interface{}, error) {
-	return uuid.UUID(u).String(), nil
 }
 
 // LoadConf loads config from a yaml file
