@@ -2,6 +2,7 @@ package mtdaws
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/thefeli73/polemos/state"
@@ -26,6 +27,13 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		return config
 	}
 	fmt.Println("Created image: ", imageName)
+
+	err = waitForImageReady(svc, imageName, 5*time.Minute)
+	if err != nil {
+		fmt.Println("Error waiting for image to be ready:", err)
+		return config
+	}
+	fmt.Println("Image is ready:", imageName)
 
 	newInstanceID, err := launchInstance(svc, realInstance, imageName)
 	if err != nil {

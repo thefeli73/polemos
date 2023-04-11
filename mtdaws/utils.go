@@ -2,6 +2,7 @@ package mtdaws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -129,27 +130,57 @@ func createImage(svc *ec2.Client, instanceID string) (string, error) {
 	return aws.ToString(output.ImageId), nil
 }
 
-// launchInstance launches a instance specified by id with parameters
-func launchInstance(svc *ec2.Client, instance *types.Instance, imageID string) (string, error) {
-	securityGroupIds := make([]string, len(instance.SecurityGroups))
-	for i, sg := range instance.SecurityGroups {
+// waitForImageReady polls every second to see if the image is ready
+func waitForImageReady(svc *ec2.Client, imageID string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("timed out waiting for image to be ready")
+		case <-time.After(1 * time.Second):
+			input := &ec2.DescribeImagesInput{
+				ImageIds: []string{imageID},
+			}
+			output, err := svc.DescribeImages(ctx, input)
+			if err != nil {
+				return err
+			}
+
+			if len(output.Images) > 0 && output.Images[0].State == types.ImageStateAvailable {
+				return nil
+			}
+		}
+	}
+}
+
+// launchInstance launches a instance based on an oldInstance and AMI (duplicating the instance)
+func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string) (string, error) {
+	securityGroupIds := make([]string, len(oldInstance.SecurityGroups))
+	for i, sg := range oldInstance.SecurityGroups {
 		securityGroupIds[i] = aws.ToString(sg.GroupId)
 	}
-
+	// TODO: select random zone that is not the current one.
+	availabilityZone := "us-east-1d"
 	input := &ec2.RunInstancesInput{
 		ImageId:         aws.String(imageID),
-		InstanceType:    instance.InstanceType,
+		InstanceType:    oldInstance.InstanceType,
 		MinCount:        aws.Int32(1),
 		MaxCount:        aws.Int32(1),
-		KeyName:         instance.KeyName,
-		SubnetId:        instance.SubnetId,
+		KeyName:         oldInstance.KeyName,
 		SecurityGroupIds: securityGroupIds,
+		Placement: &types.Placement{
+			AvailabilityZone: aws.String(availabilityZone),
+		},
 	}
 
 	output, err := svc.RunInstances(context.TODO(), input)
 	if err != nil {
 		return "", err
 	}
+
+	// TODO: save/index config for the new instance
 
 	return aws.ToString(output.Instances[0].InstanceId), nil
 }
@@ -161,6 +192,8 @@ func terminateInstance(svc *ec2.Client, instanceID string) error {
 	}
 
 	_, err := svc.TerminateInstances(context.TODO(), input)
+
+	// TODO: remove config for old instance
 	return err
 }
 
