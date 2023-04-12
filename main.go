@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 
+	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/mtdaws"
 	"github.com/thefeli73/polemos/state"
 )
@@ -72,7 +73,9 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (s
 			break;
 		}
 	}
+	u := uuid.New()
 	newService := state.Service{
+		ID: state.CustomUUID(u),
 		CloudID: cloudID,
 		ServiceIP: serviceIP}
 	return newService, found
