@@ -11,7 +11,17 @@ import (
 
 // AWSMoveInstance moves a specified instance to a new availability region
 func AWSMoveInstance(config state.Config) (state.Config) {
-	instance := config.MTD.Services[0] // for testing use first instance
+	// pseudorandom instance from all services for testing
+	var serviceUUID state.CustomUUID
+	var instance state.Service
+	for key, service := range config.MTD.Services {
+		serviceUUID = key
+		instance = service
+		break
+	}
+
+	fmt.Println("MTD move service:\t", serviceUUID)
+
 	region, instanceID := DecodeCloudID(instance.CloudID)
 	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
 	svc := ec2.NewFromConfig(awsConfig)
@@ -27,14 +37,14 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		fmt.Println("Error creating image:\t", err)
 		return config
 	}
-	fmt.Println("Created image:\t", imageName)
+	fmt.Println("Created image:\t\t", imageName)
 
 	err = waitForImageReady(svc, imageName, 5*time.Minute)
 	if err != nil {
 		fmt.Println("Error waiting for image to be ready:\t", err)
 		return config
 	}
-	fmt.Println("Image is ready:\t", imageName)
+	fmt.Println("Image is ready:\t\t", imageName)
 
 	newInstanceID, err := launchInstance(svc, realInstance, imageName)
 	if err != nil {
@@ -48,7 +58,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		fmt.Println("Error terminating instance:\t", err)
 		return config
 	}
-	fmt.Println("Terminated old instance:\t", instanceID)
+	fmt.Println("Killed old instance:\t", instanceID)
 
 	image, err := describeImage(svc, imageName)
 	if err != nil {

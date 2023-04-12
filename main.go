@@ -17,8 +17,13 @@ func main() {
 
 	ConfigPath = "config.yaml"
 	
-	config := state.LoadConf(ConfigPath)
+    // Initialize the config.Services map
+	var config state.Config
+	config.MTD.Services = make(map[state.CustomUUID]state.Service)
+
+	config = state.LoadConf(ConfigPath)
 	state.SaveConf(ConfigPath, config)
+
 
 	config = indexAllInstances(config)
 
