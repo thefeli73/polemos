@@ -75,20 +75,6 @@ func GetInstances(config state.Config) []AwsInstance {
 	return awsInstances
 }
 
-// PrintInstanceInfo prints info about a specific instance in a region
-func PrintInstanceInfo(instance *types.Instance) {
-	fmt.Println("\tInstance ID:", aws.ToString(instance.InstanceId))
-	fmt.Println("\t\tInstance DNS name:", aws.ToString(instance.PublicDnsName))
-	fmt.Println("\t\tInstance Type:", string(instance.InstanceType))
-	fmt.Println("\t\tAMI ID:", aws.ToString(instance.ImageId))
-	fmt.Println("\t\tState:", string(instance.State.Name))
-	fmt.Println("\t\tAvailability Zone:", aws.ToString(instance.Placement.AvailabilityZone))
-	if instance.PublicIpAddress != nil {
-		fmt.Println("\t\tPublic IP Address:", aws.ToString(instance.PublicIpAddress))
-	}
-	fmt.Println("\t\tPrivate IP Address:", aws.ToString(instance.PrivateIpAddress))
-}
-
 // Instances returns all instances for a config i.e. a region
 func Instances(config aws.Config) ([]types.Instance, error) {
 	svc := ec2.NewFromConfig(config)
@@ -194,6 +180,44 @@ func terminateInstance(svc *ec2.Client, instanceID string) error {
 	_, err := svc.TerminateInstances(context.TODO(), input)
 
 	// TODO: remove config for old instance
+	return err
+}
+
+// describeImage gets info about an image from string
+func describeImage(svc *ec2.Client, imageID string) (*types.Image, error) {
+	input := &ec2.DescribeImagesInput{
+		ImageIds: []string{imageID},
+	}
+
+	output, err := svc.DescribeImages(context.TODO(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(output.Images) == 0 {
+		return nil, errors.New("image not found")
+	}
+
+	return &output.Images[0], nil
+}
+
+// deregisterImage deletes the AMI passed as string
+func deregisterImage(svc *ec2.Client, imageID string) error {
+	input := &ec2.DeregisterImageInput{
+		ImageId: aws.String(imageID),
+	}
+
+	_, err := svc.DeregisterImage(context.TODO(), input)
+	return err
+}
+
+// deleteSnapshot deletes the snapshot passed as string
+func deleteSnapshot(svc *ec2.Client, snapshotID string) error {
+	input := &ec2.DeleteSnapshotInput{
+		SnapshotId: aws.String(snapshotID),
+	}
+
+	_, err := svc.DeleteSnapshot(context.TODO(), input)
 	return err
 }
 

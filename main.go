@@ -45,12 +45,12 @@ func indexAllInstances(config state.Config) state.Config {
 		cloudID := mtdaws.GetCloudID(instance)
 		ip, err := netip.ParseAddr(instance.PublicIP)
 		if err != nil {
-			fmt.Println("Error converting ip:", err)
+			fmt.Println("Error converting ip:\t", err)
 			continue
 		}
 		newService, found := indexInstance(config, cloudID, ip)
 		if !found {
-			fmt.Println("New instance found:", newService.CloudID)
+			fmt.Println("New instance found:\t", newService.CloudID)
 			config.MTD.Services = append(config.MTD.Services, newService)
 			state.SaveConf(ConfigPath, config)
 			awsNewInstanceCounter++
