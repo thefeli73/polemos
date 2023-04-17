@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/state"
 )
 
@@ -38,6 +39,7 @@ func AWSUpdateService(config state.Config, region string, service state.CustomUU
 
 // AWSMoveInstance moves a specified instance to a new availability region
 func AWSMoveInstance(config state.Config) (state.Config) {
+
 	// pseudorandom instance from all services for testing
 	var serviceUUID state.CustomUUID
 	var instance state.Service
@@ -47,7 +49,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		break
 	}
 
-	fmt.Println("MTD move service:\t", serviceUUID)
+	fmt.Println("MTD move service:\t", uuid.UUID.String(uuid.UUID(serviceUUID)))
 
 	region, instanceID := DecodeCloudID(instance.CloudID)
 	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
@@ -73,7 +75,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 	}
 	fmt.Println("Image is ready:\t\t", imageName)
 
-	newInstanceID, err := launchInstance(svc, realInstance, imageName)
+	newInstanceID, err := launchInstance(svc, realInstance, imageName, region)
 	if err != nil {
 		fmt.Println("Error launching instance:\t", err)
 		return config

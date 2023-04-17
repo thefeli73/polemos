@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -141,14 +142,18 @@ func waitForImageReady(svc *ec2.Client, imageID string, timeout time.Duration) e
 	}
 }
 
-// launchInstance launches a instance based on an oldInstance and AMI (duplicating the instance)
-func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string) (string, error) {
+// launchInstance launches a instance IN RANDOM AVAILABILITY ZONE within the same region, based on an oldInstance and AMI (duplicating the instance)
+func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string, region string) (string, error) {
 	securityGroupIds := make([]string, len(oldInstance.SecurityGroups))
 	for i, sg := range oldInstance.SecurityGroups {
 		securityGroupIds[i] = aws.ToString(sg.GroupId)
 	}
 	// TODO: select random zone that is not the current one.
-	availabilityZone := "us-east-1d"
+	availabilityZone, err := getRandomDifferentAvailabilityZone(svc, oldInstance, region)
+	if err != nil {
+		return "", err
+	}
+
 	input := &ec2.RunInstancesInput{
 		ImageId:         aws.String(imageID),
 		InstanceType:    oldInstance.InstanceType,
@@ -170,6 +175,49 @@ func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string
 
 	return aws.ToString(output.Instances[0].InstanceId), nil
 }
+
+// getRandomDifferentAvailabilityZone fetches all AZ from the same region as the instance and returns a random AZ that is not equal to the one used by the instance
+func getRandomDifferentAvailabilityZone(svc *ec2.Client, instance *types.Instance, region string) (string, error) {
+	// Seed the random generator
+	rand.Seed(time.Now().UnixNano())
+
+	// Get the current availability zone of the instance
+	currentAZ := aws.ToString(instance.Placement.AvailabilityZone)
+
+	// Describe availability zones in the region
+	input := &ec2.DescribeAvailabilityZonesInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("region-name"),
+				Values: []string{region},
+			},
+		},
+	}
+
+	output, err := svc.DescribeAvailabilityZones(context.TODO(), input)
+	if err != nil {
+		return "", err
+	}
+
+	// Filter out the current availability zone
+	availableAZs := []string{}
+	for _, az := range output.AvailabilityZones {
+		if aws.ToString(az.ZoneName) != currentAZ {
+			availableAZs = append(availableAZs, aws.ToString(az.ZoneName))
+		}
+	}
+
+	// If no other availability zones are available, return an error
+	if len(availableAZs) == 0 {
+		return "", errors.New("no other availability zones available")
+	}
+
+	// Select a random availability zone from the remaining ones
+	randomIndex := rand.Intn(len(availableAZs))
+	randomAZ := availableAZs[randomIndex]
+	return randomAZ, nil
+}
+
 
 // terminateInstance kills an instance by id
 func terminateInstance(svc *ec2.Client, instanceID string) error {
