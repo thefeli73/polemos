@@ -2,12 +2,39 @@ package mtdaws
 
 import (
 	"fmt"
+	"net/netip"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/thefeli73/polemos/state"
 )
+
+// AWSUpdateService updates a specified service config to match a newly moved instance
+func AWSUpdateService(config state.Config, region string, service state.CustomUUID, newInstanceID string) (state.Config) {
+	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
+	svc := ec2.NewFromConfig(awsConfig)
+	instance, err := getInstanceDetailsFromString(svc, newInstanceID)
+	if err != nil {
+		fmt.Println("Error getting instance details:\t", err)
+		return config
+	}
+
+	var publicAddr string
+	if instance.PublicIpAddress != nil {
+		publicAddr = aws.ToString(instance.PublicIpAddress)
+	}
+	formattedinstance := AwsInstance{
+		InstanceID: aws.ToString(instance.InstanceId),
+		Region: region,
+		PublicIP: publicAddr, 
+		PrivateIP: aws.ToString(instance.PrivateIpAddress),
+	}
+	cloudid := GetCloudID(formattedinstance)
+	serviceip := netip.MustParseAddr(publicAddr)
+	config.MTD.Services[service] = state.Service{CloudID: cloudid, ServiceIP: serviceip}
+	return config
+}
 
 // AWSMoveInstance moves a specified instance to a new availability region
 func AWSMoveInstance(config state.Config) (state.Config) {
@@ -82,6 +109,8 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		}
 		fmt.Println("Deleted snapshot:\t", snapshotID)
 	}
+
+	AWSUpdateService(config, region, serviceUUID, newInstanceID)
 
 	return config
 }
