@@ -26,9 +26,11 @@ func main() {
 
 
 	config = indexAllInstances(config)
+	state.SaveConf(ConfigPath, config)
 
 	//TODO: figure out migration (MTD)
 	config = movingTargetDefense(config)
+	state.SaveConf(ConfigPath, config)
 
 	//TODO: proxy commands
 }
@@ -54,13 +56,9 @@ func indexAllInstances(config state.Config) state.Config {
 			fmt.Println("Error converting ip:\t", err)
 			continue
 		}
-		newService, found := indexInstance(config, cloudID, ip)
-		if !found {
-			fmt.Println("New instance found:\t", newService.CloudID)
-			config.MTD.Services = append(config.MTD.Services, newService)
-			state.SaveConf(ConfigPath, config)
-			awsNewInstanceCounter++
-		}
+		var found bool
+		config, found = indexInstance(config, cloudID, ip)
+		if !found {awsNewInstanceCounter++}
 		awsInstanceCounter++
 	}
 	// TODO: Purge instances in config that are not found in the cloud
@@ -70,7 +68,7 @@ func indexAllInstances(config state.Config) state.Config {
 	return config
 }
 
-func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (state.Service, bool) {
+func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (state.Config, bool) {
 	found := false
 	for _, service := range config.MTD.Services {
 		if service.CloudID == cloudID {
@@ -78,10 +76,13 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (s
 			break;
 		}
 	}
-	u := uuid.New()
-	newService := state.Service{
-		ID: state.CustomUUID(u),
-		CloudID: cloudID,
-		ServiceIP: serviceIP}
-	return newService, found
+
+	if !found {
+		fmt.Println("New instance found:\t", cloudID)
+		u := uuid.New()
+		config.MTD.Services[state.CustomUUID(u)] = state.Service{CloudID: cloudID, ServiceIP: serviceIP}
+		state.SaveConf(ConfigPath, config)
+		
+	}
+	return config, found
 }
