@@ -28,11 +28,18 @@ func main() {
 	config = indexAllInstances(config)
 	state.SaveConf(ConfigPath, config)
 
-	//TODO: figure out migration (MTD)
-	config = movingTargetDefense(config)
-	state.SaveConf(ConfigPath, config)
+	// START DOING MTD
+	mtdLoop(config)
+}
 
-	//TODO: proxy commands
+func mtdLoop(config state.Config) {
+	for true {
+		//TODO: figure out migration (MTD)
+		config = movingTargetDefense(config)
+		state.SaveConf(ConfigPath, config)
+
+		//TODO: proxy commands
+	}
 }
 
 func movingTargetDefense(config state.Config) state.Config{

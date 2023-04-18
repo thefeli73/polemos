@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/state"
 )
@@ -37,6 +38,12 @@ func AWSUpdateService(config state.Config, region string, service state.CustomUU
 	return config
 }
 
+
+// isInstanceRunning returns if an instance is running (true=running)
+func isInstanceRunning(instance *types.Instance) bool {
+	return instance.State.Name == types.InstanceStateNameRunning
+}
+
 // AWSMoveInstance moves a specified instance to a new availability region
 func AWSMoveInstance(config state.Config) (state.Config) {
 
@@ -58,6 +65,19 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 	realInstance, err := getInstanceDetailsFromString(svc, instanceID)
 	if err != nil {
 		fmt.Println("Error getting instance details:\t", err)
+		return config
+	}
+
+	if !isInstanceRunning(realInstance) {
+		fmt.Println("Error, Instance is not running!")
+		return config
+	}
+	if instance.AdminDisabled {
+		fmt.Println("Error, Service is Disabled!")
+		return config
+	}
+	if instance.Inactive {
+		fmt.Println("Error, Service is Inactive!")
 		return config
 	}
 
