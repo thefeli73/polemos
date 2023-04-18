@@ -51,6 +51,10 @@ func movingTargetDefense(config state.Config) state.Config{
 func indexAllInstances(config state.Config) state.Config {
 	fmt.Println("Indexing instances")
 
+	for _, service := range config.MTD.Services {
+		service.Active = false
+	}
+
 	//index AWS instances
 	awsNewInstanceCounter := 0
 	awsRemovedInstanceCounter := 0
@@ -77,9 +81,11 @@ func indexAllInstances(config state.Config) state.Config {
 
 func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (state.Config, bool) {
 	found := false
-	for _, service := range config.MTD.Services {
+	var foundUUID state.CustomUUID
+	for u, service := range config.MTD.Services {
 		if service.CloudID == cloudID {
 			found = true
+			foundUUID = u
 			break;
 		}
 	}
@@ -87,9 +93,12 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (s
 	if !found {
 		fmt.Println("New instance found:\t", cloudID)
 		u := uuid.New()
-		config.MTD.Services[state.CustomUUID(u)] = state.Service{CloudID: cloudID, ServiceIP: serviceIP}
+		config.MTD.Services[state.CustomUUID(u)] = state.Service{CloudID: cloudID, ServiceIP: serviceIP, Active: true, AdminEnabled: true}
 		state.SaveConf(ConfigPath, config)
 		
+	} else {
+		config.MTD.Services[foundUUID] = state.Service{Active: true}
+		state.SaveConf(ConfigPath, config)
 	}
 	return config, found
 }

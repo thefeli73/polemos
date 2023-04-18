@@ -68,16 +68,16 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		return config
 	}
 
-	if !isInstanceRunning(realInstance) {
-		fmt.Println("Error, Instance is not running!")
-		return config
-	}
-	if instance.AdminDisabled {
+	if !instance.AdminEnabled {
 		fmt.Println("Error, Service is Disabled!")
 		return config
 	}
-	if instance.Inactive {
-		fmt.Println("Error, Service is Inactive!")
+	if !instance.Active {
+		fmt.Println("Error, Service is not active!")
+		return config
+	}
+	if !isInstanceRunning(realInstance) {
+		fmt.Println("Error, Instance is not running!")
 		return config
 	}
 

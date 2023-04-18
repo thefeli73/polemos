@@ -24,8 +24,8 @@ type mtdconf struct {
 // Service contains all necessary information about a service to identify it in the cloud as well as configuring a proxy for it
 type Service struct {
     CloudID         string      `yaml:"cloud_id"`
-    AdminDisabled   bool        `yaml:"admin_disabled"`
-    Inactive        bool        `yaml:"inactive"`
+    AdminEnabled    bool        `yaml:"admin_enabled"`
+    Active          bool        `yaml:"active"`
     EntryIP         netip.Addr  `yaml:"entry_ip"`
     EntryPort       uint16      `yaml:"entry_port"`
     ServiceIP       netip.Addr  `yaml:"service_ip"`
