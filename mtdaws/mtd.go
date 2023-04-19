@@ -53,6 +53,8 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 	for key, service := range config.MTD.Services {
 		serviceUUID = key
 		instance = service
+		if !instance.AdminEnabled {continue}
+		if !instance.Active {continue}
 		break
 	}
 
@@ -67,61 +69,63 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		fmt.Println("Error getting instance details:\t", err)
 		return config
 	}
-
-	if !instance.AdminEnabled {
-		fmt.Println("Error, Service is Disabled!")
-		return config
-	}
-	if !instance.Active {
-		fmt.Println("Error, Service is not active!")
-		return config
-	}
 	if !isInstanceRunning(realInstance) {
 		fmt.Println("Error, Instance is not running!")
 		return config
 	}
 
+	//Create image
+	t := time.Now()
 	imageName, err := createImage(svc, instanceID)
 	if err != nil {
 		fmt.Println("Error creating image:\t", err)
 		return config
 	}
-	fmt.Println("Created image:\t\t", imageName)
+	fmt.Printf("Created image:\t\t%s (took %s)\n", imageName, time.Since(t).Round(100*time.Millisecond).String())
 
+	// Wait for image
+	t = time.Now()
 	err = waitForImageReady(svc, imageName, 5*time.Minute)
 	if err != nil {
 		fmt.Println("Error waiting for image to be ready:\t", err)
 		return config
 	}
-	fmt.Println("Image is ready:\t\t", imageName)
+	fmt.Printf("Image is ready:\t\t%s (took %s)\n", imageName, time.Since(t).Round(100*time.Millisecond).String())
 
+	// Launch new instance
+	t = time.Now()
 	newInstanceID, err := launchInstance(svc, realInstance, imageName, region)
 	if err != nil {
 		fmt.Println("Error launching instance:\t", err)
 		return config
 	}
-	fmt.Println("Launched new instance:\t", newInstanceID)
+	fmt.Printf("Launched new instance:\t%s (took %s)\n", newInstanceID, time.Since(t).Round(100*time.Millisecond).String())
 
+	// Terminate old instance
+	t = time.Now()
 	err = terminateInstance(svc, instanceID)
 	if err != nil {
 		fmt.Println("Error terminating instance:\t", err)
 		return config
 	}
-	fmt.Println("Killed old instance:\t", instanceID)
+	fmt.Printf("Killed old instance:\t%s (took %s)\n", instanceID, time.Since(t).Round(100*time.Millisecond).String())
 
+	// Deregister old image
+	t = time.Now()
 	image, err := describeImage(svc, imageName)
 	if err != nil {
 		fmt.Println("Error describing image:\t", err)
 		return config
 	}
-
 	err = deregisterImage(svc, imageName)
 	if err != nil {
 		fmt.Println("Error deregistering image:\t", err)
 		return config
 	}
-	fmt.Println("Deregistered image:\t", imageName)
+	fmt.Printf("Deregistered image:\t%s (took %s)\n", imageName, time.Since(t).Round(100*time.Millisecond).String())
 
+	// Delete old snapshot
+	t = time.Now()
 	if len(image.BlockDeviceMappings) > 0 {
 		snapshotID := aws.ToString(image.BlockDeviceMappings[0].Ebs.SnapshotId)
 		err = deleteSnapshot(svc, snapshotID)
@@ -129,7 +133,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 			fmt.Println("Error deleting snapshot:\t", err)
 			return config
 		}
-		fmt.Println("Deleted snapshot:\t", snapshotID)
+		fmt.Printf("Deleted snapshot:\t%s (took %s)\n", snapshotID, time.Since(t).Round(100*time.Millisecond).String())
 	}
 
 	AWSUpdateService(config, region, serviceUUID, newInstanceID)

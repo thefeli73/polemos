@@ -224,10 +224,7 @@ func terminateInstance(svc *ec2.Client, instanceID string) error {
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []string{instanceID},
 	}
-
 	_, err := svc.TerminateInstances(context.TODO(), input)
-
-	// TODO: remove config for old instance
 	return err
 }
 

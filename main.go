@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/netip"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/mtdaws"
@@ -38,6 +39,9 @@ func mtdLoop(config state.Config) {
 		config = movingTargetDefense(config)
 		state.SaveConf(ConfigPath, config)
 
+		fmt.Println("Sleeping for 5 seconds")
+		time.Sleep(5*time.Second)
+
 		//TODO: proxy commands
 	}
 }
@@ -50,6 +54,7 @@ func movingTargetDefense(config state.Config) state.Config{
 
 func indexAllInstances(config state.Config) state.Config {
 	fmt.Println("Indexing instances")
+	t := time.Now()
 
 	for _, service := range config.MTD.Services {
 		service.Active = false
@@ -57,7 +62,7 @@ func indexAllInstances(config state.Config) state.Config {
 
 	//index AWS instances
 	awsNewInstanceCounter := 0
-	awsRemovedInstanceCounter := 0
+	awsInactiveInstanceCounter := len(config.MTD.Services)
 	awsInstanceCounter := 0
 	awsInstances := mtdaws.GetInstances(config)
 	for _, instance := range awsInstances {
@@ -69,11 +74,16 @@ func indexAllInstances(config state.Config) state.Config {
 		}
 		var found bool
 		config, found = indexInstance(config, cloudID, ip)
-		if !found {awsNewInstanceCounter++}
+		if !found {
+			awsNewInstanceCounter++
+		} else {
+			awsInactiveInstanceCounter--
+		}
 		awsInstanceCounter++
 	}
 	// TODO: Purge instances in config that are not found in the cloud
-	fmt.Printf("Found %d AWS instances (%d newly added, %d removed)\n", awsInstanceCounter, awsNewInstanceCounter, awsRemovedInstanceCounter)
+	fmt.Printf("Found %d active AWS instances (%d newly added, %d inactive) (took %s)\n",
+		awsInstanceCounter, awsNewInstanceCounter, awsInactiveInstanceCounter, time.Since(t).Round(100*time.Millisecond).String())
 
 
 	return config
@@ -97,7 +107,9 @@ func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (s
 		state.SaveConf(ConfigPath, config)
 		
 	} else {
-		config.MTD.Services[foundUUID] = state.Service{Active: true}
+		s := config.MTD.Services[foundUUID]
+		s.Active = true
+		config.MTD.Services[foundUUID] = s
 		state.SaveConf(ConfigPath, config)
 	}
 	return config, found
