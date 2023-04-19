@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/thefeli73/polemos/pcsdk"
+	pcsdk "github.com/thefeli73/polemos/commands"
 	"github.com/thefeli73/polemos/state"
 )
 
