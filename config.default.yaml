@@ -1,5 +1,5 @@
 mtd:
-    services: []
+    services: {}
 aws:
     regions: []
     credentials_path: ./mtdaws/.credentials

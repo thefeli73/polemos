@@ -17,13 +17,15 @@ type Config struct {
 }
 
 type mtdconf struct {
-    Services        []Service   `yaml:"services"`
+    Services        map[CustomUUID]Service `yaml:"services"`
+
 }
 
 // Service contains all necessary information about a service to identify it in the cloud as well as configuring a proxy for it
 type Service struct {
-    ID              CustomUUID  `yaml:"id"`
     CloudID         string      `yaml:"cloud_id"`
+    AdminEnabled    bool        `yaml:"admin_enabled"`
+    Active          bool        `yaml:"active"`
     EntryIP         netip.Addr  `yaml:"entry_ip"`
     EntryPort       uint16      `yaml:"entry_port"`
     ServiceIP       netip.Addr  `yaml:"service_ip"`
