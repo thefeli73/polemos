@@ -14,7 +14,7 @@ import (
 )
 
 type ExecuteCommand interface {
-	Execute(string) error
+	Execute(netip.AddrPort) error
 }
 
 type response struct {
@@ -33,14 +33,14 @@ type CommandCreate struct {
 	Id              string     `json:"id"`
 }
 
-func (c ProxyCommandCreate) Execute(url string) error {
+func (c ProxyCommandCreate) Execute(url netip.AddrPort) error {
 	data, err := json.Marshal(c)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
 	}
 
-	requestURL := fmt.Sprintf("%s/command", url)
-
+	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
+	fmt.Println(requestURL)
 	bodyReader := bytes.NewReader(data)
 
 	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
@@ -78,13 +78,13 @@ type CommandModify struct {
 	Id              string     `json:"id"`
 }
 
-func (c ProxyCommandModify) Execute(url string) error {
+func (c ProxyCommandModify) Execute(url netip.AddrPort) error {
 	data, err := json.Marshal(c)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
 	}
 
-	requestURL := fmt.Sprintf("%s/command", url)
+	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
 
 	bodyReader := bytes.NewReader(data)
 
@@ -121,13 +121,13 @@ type CommandDelete struct {
 	Id string `json:"id"`
 }
 
-func (c ProxyCommandDelete) Execute(url string) error {
+func (c ProxyCommandDelete) Execute(url netip.AddrPort) error {
 	data, err := json.Marshal(c)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
 	}
 
-	requestURL := fmt.Sprintf("%s/command", url)
+	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
 
 	bodyReader := bytes.NewReader(data)
 
