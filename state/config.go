@@ -18,6 +18,7 @@ type Config struct {
 
 type mtdconf struct {
     Services        map[CustomUUID]Service `yaml:"services"`
+    ManagementPort  uint16      `yaml:"management_port"`
 
 }
 
