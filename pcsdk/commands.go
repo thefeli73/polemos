@@ -78,6 +78,36 @@ type CommandModify struct {
 	Id              string     `json:"id"`
 }
 
+func (c ProxyCommandModify) Execute(url string) error {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
+	}
+
+	requestURL := fmt.Sprintf("%s/command", url)
+
+	bodyReader := bytes.NewReader(data)
+
+	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
+	}
+
+	fmt.Println(res)
+
+	body, err := ioutil.ReadAll(res.Body)
+	fmt.Println(string(body))
+	if err != nil {
+		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
+	}
+
+	if res.StatusCode != 202 {
+		return errors.New(fmt.Sprintf("error processing command: (%d) %s\n", res.StatusCode, body))
+	} else {
+		return nil
+	}
+}
+
 func NewCommandModify(oport uint16, oip netip.Addr, id state.CustomUUID) ProxyCommandModify {
 	c := CommandModify{oport, oip, uuid.UUID.String(uuid.UUID(id))}
 	return ProxyCommandModify{c}
@@ -89,6 +119,36 @@ type ProxyCommandDelete struct {
 
 type CommandDelete struct {
 	Id string `json:"id"`
+}
+
+func (c ProxyCommandDelete) Execute(url string) error {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
+	}
+
+	requestURL := fmt.Sprintf("%s/command", url)
+
+	bodyReader := bytes.NewReader(data)
+
+	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
+	}
+
+	fmt.Println(res)
+
+	body, err := ioutil.ReadAll(res.Body)
+	fmt.Println(string(body))
+	if err != nil {
+		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
+	}
+
+	if res.StatusCode != 202 {
+		return errors.New(fmt.Sprintf("error processing command: (%d) %s\n", res.StatusCode, body))
+	} else {
+		return nil
+	}
 }
 
 func NewCommandDelete(id state.CustomUUID) ProxyCommandDelete {
