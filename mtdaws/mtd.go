@@ -9,40 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
+	"github.com/thefeli73/polemos/pcsdk"
 	"github.com/thefeli73/polemos/state"
 )
-
-// AWSUpdateService updates a specified service config to match a newly moved instance
-func AWSUpdateService(config state.Config, region string, service state.CustomUUID, newInstanceID string) (state.Config) {
-	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
-	svc := ec2.NewFromConfig(awsConfig)
-	instance, err := getInstanceDetailsFromString(svc, newInstanceID)
-	if err != nil {
-		fmt.Println("Error getting instance details:\t", err)
-		return config
-	}
-
-	var publicAddr string
-	if instance.PublicIpAddress != nil {
-		publicAddr = aws.ToString(instance.PublicIpAddress)
-	}
-	formattedinstance := AwsInstance{
-		InstanceID: aws.ToString(instance.InstanceId),
-		Region: region,
-		PublicIP: publicAddr, 
-		PrivateIP: aws.ToString(instance.PrivateIpAddress),
-	}
-	cloudid := GetCloudID(formattedinstance)
-	serviceip := netip.MustParseAddr(publicAddr)
-	config.MTD.Services[service] = state.Service{CloudID: cloudid, ServiceIP: serviceip}
-	return config
-}
-
-
-// isInstanceRunning returns if an instance is running (true=running)
-func isInstanceRunning(instance *types.Instance) bool {
-	return instance.State.Name == types.InstanceStateNameRunning
-}
 
 // AWSMoveInstance moves a specified instance to a new availability region
 func AWSMoveInstance(config state.Config) (state.Config) {
@@ -101,9 +70,70 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 	}
 	fmt.Printf("Launched new instance:\t%s (took %s)\n", newInstanceID, time.Since(t).Round(100*time.Millisecond).String())
 
-	// Terminate old instance
+	// Wait for instance
 	t = time.Now()
-	err = terminateInstance(svc, instanceID)
+	err = waitForInstanceReady(svc, newInstanceID, 5*time.Minute)
+	if err != nil {
+		fmt.Println("Error waiting for instance to be ready:\t", err)
+		return config
+	}
+	fmt.Printf("instance is ready:\t\t%s (took %s)\n", newInstanceID, time.Since(t).Round(100*time.Millisecond).String())
+
+	// Reconfigure Proxy to new instance
+	t = time.Now()
+	m := pcsdk.NewCommandModify(instance.ServicePort, instance.ServiceIP, serviceUUID)
+	err = m.Execute(netip.AddrPortFrom(instance.EntryIP, config.MTD.ManagementPort))
+	if err != nil {
+		fmt.Printf("error executing modify command: %s\n", err)
+		return config
+	}
+	fmt.Printf("Proxy modified. (took %s)\n", time.Since(t).Round(100*time.Millisecond).String())
+	
+	
+	AWSUpdateService(config, region, serviceUUID, newInstanceID)
+
+	cleanupAWS(svc, config, instanceID, imageName)
+
+
+	return config
+}
+
+// AWSUpdateService updates a specified service config to match a newly moved instance
+func AWSUpdateService(config state.Config, region string, service state.CustomUUID, newInstanceID string) (state.Config) {
+	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
+	svc := ec2.NewFromConfig(awsConfig)
+	instance, err := getInstanceDetailsFromString(svc, newInstanceID)
+	if err != nil {
+		fmt.Println("Error getting instance details:\t", err)
+		return config
+	}
+
+	var publicAddr string
+	if instance.PublicIpAddress != nil {
+		publicAddr = aws.ToString(instance.PublicIpAddress)
+	}
+	formattedinstance := AwsInstance{
+		InstanceID: aws.ToString(instance.InstanceId),
+		Region: region,
+		PublicIP: publicAddr, 
+		PrivateIP: aws.ToString(instance.PrivateIpAddress),
+	}
+	cloudid := GetCloudID(formattedinstance)
+	serviceip := netip.MustParseAddr(publicAddr)
+	config.MTD.Services[service] = state.Service{CloudID: cloudid, ServiceIP: serviceip}
+	return config
+}
+
+// isInstanceRunning returns if an instance is running (true=running)
+func isInstanceRunning(instance *types.Instance) bool {
+	return instance.State.Name == types.InstanceStateNameRunning
+}
+
+// cleanupAWS terminates the old instance, deregisters the image and deletes the old snapshot
+func cleanupAWS(svc *ec2.Client, config state.Config, instanceID string, imageName string) state.Config {
+	// Terminate old instance
+	t := time.Now()
+	err := terminateInstance(svc, instanceID)
 	if err != nil {
 		fmt.Println("Error terminating instance:\t", err)
 		return config
@@ -135,8 +165,5 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		}
 		fmt.Printf("Deleted snapshot:\t%s (took %s)\n", snapshotID, time.Since(t).Round(100*time.Millisecond).String())
 	}
-
-	AWSUpdateService(config, region, serviceUUID, newInstanceID)
-
 	return config
 }

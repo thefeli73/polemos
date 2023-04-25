@@ -142,6 +142,20 @@ func waitForImageReady(svc *ec2.Client, imageID string, timeout time.Duration) e
 	}
 }
 
+// waitForInstanceReady waits for the newly launched instance to be running and ready 
+func waitForInstanceReady(svc *ec2.Client, newInstanceID string, timeout time.Duration) error {
+	// Wait for the instance to be running
+	waitInput := &ec2.DescribeInstancesInput{
+		InstanceIds: []string{newInstanceID},
+	}
+	waiter := ec2.NewInstanceRunningWaiter(svc)
+	err := waiter.Wait(context.TODO(), waitInput, timeout)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // launchInstance launches a instance IN RANDOM AVAILABILITY ZONE within the same region, based on an oldInstance and AMI (duplicating the instance)
 func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string, region string) (string, error) {
 	securityGroupIds := make([]string, len(oldInstance.SecurityGroups))
