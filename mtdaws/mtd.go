@@ -29,6 +29,16 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 
 	fmt.Println("MTD move service:\t", uuid.UUID.String(uuid.UUID(serviceUUID)))
 
+	// Test Proxy Connection
+	t := time.Now()
+	s := pcsdk.NewCommandStatus()
+	err := s.Execute(netip.AddrPortFrom(instance.EntryIP, config.MTD.ManagementPort))
+	if err != nil {
+		fmt.Printf("error executing test command: %s\n", err)
+		return config
+	}
+	fmt.Printf("Proxy Tested. (took %s)\n", time.Since(t).Round(100*time.Millisecond).String())
+	return config
 	region, instanceID := DecodeCloudID(instance.CloudID)
 	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
 	svc := ec2.NewFromConfig(awsConfig)
@@ -44,7 +54,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 	}
 
 	//Create image
-	t := time.Now()
+	t = time.Now()
 	imageName, err := createImage(svc, instanceID)
 	if err != nil {
 		fmt.Println("Error creating image:\t", err)
