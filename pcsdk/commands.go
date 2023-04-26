@@ -21,6 +21,49 @@ type response struct {
 	message string `json:"message"`
 }
 
+type ProxyCommandStatus struct {
+	Command CommandStatus `json:"status"`
+	// signature Signature
+}
+
+type CommandStatus struct {
+}
+
+func (c ProxyCommandStatus) Execute(url netip.AddrPort) error {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return errors.New(fmt.Sprintf("could not serialize: %s\n", err))
+	}
+
+	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
+	fmt.Println(requestURL)
+	bodyReader := bytes.NewReader(data)
+
+	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
+	}
+
+	fmt.Println(res)
+
+	body, err := ioutil.ReadAll(res.Body)
+	fmt.Println(string(body))
+	if err != nil {
+		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
+	}
+
+	if res.StatusCode != 202 {
+		return errors.New(fmt.Sprintf("error processing command: (%d) %s\n", res.StatusCode, body))
+	} else {
+		return nil
+	}
+}
+
+func NewCommandStatus() ProxyCommandStatus {
+	c := CommandStatus{}
+	return ProxyCommandStatus{c}
+}
+
 type ProxyCommandCreate struct {
 	Command CommandCreate `json:"create"`
 	// signature Signature
