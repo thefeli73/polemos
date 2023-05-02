@@ -38,7 +38,6 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		return config
 	}
 	fmt.Printf("Proxy Tested. (took %s)\n", time.Since(t).Round(100*time.Millisecond).String())
-	return config
 	region, instanceID := DecodeCloudID(instance.CloudID)
 	awsConfig := NewConfig(region, config.AWS.CredentialsPath)
 	svc := ec2.NewFromConfig(awsConfig)
