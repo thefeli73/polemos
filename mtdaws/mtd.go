@@ -87,22 +87,22 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 		return config
 	}
 	fmt.Printf("instance is ready:\t\t%s (took %s)\n", newInstanceID, time.Since(t).Round(100*time.Millisecond).String())
+	
+	// update local config to match new instance
+	config = AWSUpdateService(config, region, serviceUUID, newInstanceID)
 
 	// Reconfigure Proxy to new instance
 	t = time.Now()
-	m := pcsdk.NewCommandModify(instance.ServicePort, instance.ServiceIP, serviceUUID)
-	err = m.Execute(netip.AddrPortFrom(instance.EntryIP, config.MTD.ManagementPort))
+	m := pcsdk.NewCommandModify(config.MTD.Services[serviceUUID].ServicePort, config.MTD.Services[serviceUUID].ServiceIP, serviceUUID)
+	err = m.Execute(netip.AddrPortFrom(config.MTD.Services[serviceUUID].EntryIP, config.MTD.ManagementPort))
 	if err != nil {
 		fmt.Printf("error executing modify command: %s\n", err)
 		return config
 	}
 	fmt.Printf("Proxy modified. (took %s)\n", time.Since(t).Round(100*time.Millisecond).String())
-	
-	
-	AWSUpdateService(config, region, serviceUUID, newInstanceID)
 
+	// take care of old instance, deregister image and delete snapshot
 	cleanupAWS(svc, config, instanceID, imageName)
-
 
 	return config
 }
@@ -129,7 +129,10 @@ func AWSUpdateService(config state.Config, region string, service state.CustomUU
 	}
 	cloudid := GetCloudID(formattedinstance)
 	serviceip := netip.MustParseAddr(publicAddr)
-	config.MTD.Services[service] = state.Service{CloudID: cloudid, ServiceIP: serviceip}
+	s := config.MTD.Services[service]
+	s.CloudID = cloudid
+	s.ServiceIP = serviceip
+	config.MTD.Services[service] = s
 	return config
 }
 
