@@ -57,11 +57,7 @@ func (p Proxy) execute(c command) (string, error) {
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("error making http request: %s\n", err))
 	}
-
-	fmt.Println(res)
-
-	body, err := io.ReadAll(res.Body)
-	fmt.Println(string(body))
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("error reading response: %s\n", err))
 	}

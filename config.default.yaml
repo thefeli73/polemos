@@ -1,5 +1,6 @@
 mtd:
-    services: []
+    services: {}
+    management_port: 14000
 aws:
     regions: []
     credentials_path: ./mtdaws/.credentials
