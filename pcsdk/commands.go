@@ -39,23 +39,18 @@ func (c ProxyCommandStatus) Execute(url netip.AddrPort) error {
 	}
 
 	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
-	fmt.Println(requestURL)
 	bodyReader := bytes.NewReader(data)
 
 	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
 	}
-
-	fmt.Println(res)
-
 	body, err := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
 	}
 
-	if res.StatusCode != 202 {
+	if res.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("error processing command: (%d) %s\n", res.StatusCode, body))
 	} else {
 		return nil
@@ -90,18 +85,13 @@ func (c ProxyCommandCreate) Execute(url netip.AddrPort) error {
 	}
 
 	requestURL := fmt.Sprintf("http://%s:%d/command", url.Addr().String(), url.Port())
-	fmt.Println(requestURL)
 	bodyReader := bytes.NewReader(data)
 
 	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
 	}
-
-	fmt.Println(res)
-
 	body, err := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
 	}
@@ -146,11 +136,7 @@ func (c ProxyCommandModify) Execute(url netip.AddrPort) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
 	}
-
-	fmt.Println(res)
-
 	body, err := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
 	}
@@ -193,11 +179,7 @@ func (c ProxyCommandDelete) Execute(url netip.AddrPort) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("error making http request: %s\n", err))
 	}
-
-	fmt.Println(res)
-
 	body, err := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
 	if err != nil {
 		return errors.New(fmt.Sprintf("error reading response: %s\n", err))
 	}
