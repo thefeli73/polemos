@@ -162,10 +162,16 @@ func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string
 	for i, sg := range oldInstance.SecurityGroups {
 		securityGroupIds[i] = aws.ToString(sg.GroupId)
 	}
-	// TODO: select random zone that is not the current one.
 	availabilityZone, err := getRandomDifferentAvailabilityZone(svc, oldInstance, region)
 	if err != nil {
 		return "", err
+	}
+	var nameTag string
+	for _, tag := range oldInstance.Tags {
+		if aws.ToString(tag.Key) == "Name" {
+			nameTag = aws.ToString(tag.Value)
+			break
+		}
 	}
 
 	input := &ec2.RunInstancesInput{
@@ -177,6 +183,17 @@ func launchInstance(svc *ec2.Client, oldInstance *types.Instance, imageID string
 		SecurityGroupIds: securityGroupIds,
 		Placement: &types.Placement{
 			AvailabilityZone: aws.String(availabilityZone),
+		},
+		TagSpecifications: []types.TagSpecification{
+			{
+				ResourceType: types.ResourceTypeInstance,
+				Tags: []types.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(nameTag),
+					},
+				},
+			},
 		},
 	}
 
