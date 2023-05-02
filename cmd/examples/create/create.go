@@ -10,11 +10,11 @@ import (
 )
 
 func main() {
+	proxy := pcsdk.BuildProxy(netip.MustParseAddrPort("127.0.0.1:14000"))
 	ip := netip.MustParseAddr("127.0.0.1")
 	uuid := uuid.MustParse("87e79cbc-6df6-4462-8412-85d6c473e3b1")
 
-	m := pcsdk.NewCommandCreate(5555, 8080, ip, state.CustomUUID(uuid))
-	err := m.Execute(netip.MustParseAddrPort("127.0.0.1:3000"))
+	err := proxy.Create(5555, 8080, ip, state.CustomUUID(uuid))
 	if err != nil {
 		fmt.Printf("error executing create command: %s\n", err)
 	} else {
