@@ -34,7 +34,7 @@ func main() {
 	createTunnels(config)
 
 	// START DOING MTD
-	//mtdLoop(config)
+	mtdLoop(config)
 }
 
 func mtdLoop(config state.Config) {
@@ -102,7 +102,7 @@ func createTunnels(config state.Config) {
 				continue
 			}
 			// Reconfigure Proxy to new instance
-			c := pcsdk.NewCommandCreate(service.ServicePort, service.ServicePort, service.ServiceIP, serviceUUID)
+			c := pcsdk.NewCommandCreate(service.EntryPort, service.ServicePort, service.ServiceIP, serviceUUID)
 			err = c.Execute(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
 			if err != nil {
 				continue
