@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/thefeli73/polemos/mtdaws"
+	"github.com/thefeli73/polemos/pcsdk"
 	"github.com/thefeli73/polemos/state"
 )
 
@@ -29,8 +30,11 @@ func main() {
 	config = indexAllInstances(config)
 	state.SaveConf(ConfigPath, config)
 
+	// CREATE TUNNELS
+	createTunnels(config)
+
 	// START DOING MTD
-	mtdLoop(config)
+	//mtdLoop(config)
 }
 
 func mtdLoop(config state.Config) {
@@ -39,8 +43,8 @@ func mtdLoop(config state.Config) {
 		config = movingTargetDefense(config)
 		state.SaveConf(ConfigPath, config)
 
-		fmt.Println("Sleeping for 5 seconds")
-		time.Sleep(5*time.Second)
+		fmt.Println("Sleeping for 1 minute")
+		time.Sleep(1*time.Minute)
 
 		//TODO: proxy commands
 	}
@@ -87,6 +91,24 @@ func indexAllInstances(config state.Config) state.Config {
 
 
 	return config
+}
+
+func createTunnels(config state.Config) {
+	for serviceUUID, service := range config.MTD.Services {
+		if service.AdminEnabled && service.Active {
+			s := pcsdk.NewCommandStatus()
+			err := s.Execute(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
+			if err != nil {
+				continue
+			}
+			// Reconfigure Proxy to new instance
+			c := pcsdk.NewCommandCreate(service.ServicePort, service.ServicePort, service.ServiceIP, serviceUUID)
+			err = c.Execute(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
+			if err != nil {
+				continue
+			}
+		}
+	}
 }
 
 func indexInstance(config state.Config, cloudID string, serviceIP netip.Addr) (state.Config, bool) {
