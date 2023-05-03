@@ -24,25 +24,25 @@ type Proxy struct {
 }
 
 // BuildProxy creates a proxy struct for the given url to easily interact with that proxy instance (create, edit, delete tunnels etc)
-func BuildProxy(control netip.AddrPort) Proxy {
-	return Proxy {"", control}
+func BuildProxy(proxyIP netip.AddrPort) Proxy {
+	return Proxy {"", proxyIP}
 }
 
 // Create a tunnel with the given parameters.
-func (p Proxy) Create(iport uint16, oport uint16, oip netip.Addr, id state.CustomUUID) error {
-	_, err := p.execute(create(iport, oport, oip, id))
+func (p Proxy) Create(entryPort uint16, servicePort uint16, serviceIP netip.Addr, serviceUUID state.CustomUUID) error {
+	_, err := p.execute(create(entryPort, servicePort, serviceIP, serviceUUID))
 	return err
 }
 
 // Modify a tunnel with the given parameters.
-func (p Proxy) Modify(oport uint16, oip netip.Addr, id state.CustomUUID) error {
-	_, err := p.execute(modify(oport, oip, id))
+func (p Proxy) Modify(servicePort uint16, serviceIP netip.Addr, serviceUUID state.CustomUUID) error {
+	_, err := p.execute(modify(servicePort, serviceIP, serviceUUID))
 	return err
 }
 
 // Delete a tunnel with the given parameters.
-func (p Proxy) Delete(id state.CustomUUID) error {
-	_, err := p.execute(delete(id))
+func (p Proxy) Delete(serviceUUID state.CustomUUID) error {
+	_, err := p.execute(delete(serviceUUID))
 	return err
 }
 
@@ -95,8 +95,8 @@ type commandCreate struct {
 	ID              string     `json:"id"`
 }
 
-func create(iport uint16, oport uint16, oip netip.Addr, id state.CustomUUID) command {
-	cr:= commandCreate{iport, oport, oip, uuid.UUID.String(uuid.UUID(id))}
+func create(entryPort uint16, servicePort uint16, serviceIP netip.Addr, serviceUUID state.CustomUUID) command {
+	cr:= commandCreate{entryPort, servicePort, serviceIP, uuid.UUID.String(uuid.UUID(serviceUUID))}
 	c:= command{}
 	c.Create = &cr
 	return c
@@ -108,8 +108,8 @@ type commandModify struct {
 	ID              string     `json:"id"`
 }
 
-func modify(oport uint16, oip netip.Addr, id state.CustomUUID) command {
-	m:= commandModify{oport, oip, uuid.UUID.String(uuid.UUID(id))}
+func modify(servicePort uint16, serviceIP netip.Addr, serviceUUID state.CustomUUID) command {
+	m:= commandModify{servicePort, serviceIP, uuid.UUID.String(uuid.UUID(serviceUUID))}
 	c:= command{}
 	c.Modify = &m
 	return c
@@ -119,8 +119,8 @@ type commandDelete struct {
 	ID string `json:"id"`
 }
 
-func delete(id state.CustomUUID) command {
-	d:= commandDelete{uuid.UUID.String(uuid.UUID(id))}
+func delete(serviceUUID state.CustomUUID) command {
+	d:= commandDelete{uuid.UUID.String(uuid.UUID(serviceUUID))}
 	c:= command{}
 	c.Delete = &d
 	return c
