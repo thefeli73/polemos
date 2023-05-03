@@ -31,8 +31,8 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 
 	// Test Proxy Connection
 	t := time.Now()
-	s := pcsdk.NewCommandStatus()
-	err := s.Execute(netip.AddrPortFrom(instance.EntryIP, config.MTD.ManagementPort))
+	proxy := pcsdk.BuildProxy(netip.AddrPortFrom(instance.EntryIP, config.MTD.ManagementPort))
+	err := proxy.Status()
 	if err != nil {
 		fmt.Printf("error executing test command: %s\n", err)
 		return config
@@ -93,8 +93,7 @@ func AWSMoveInstance(config state.Config) (state.Config) {
 
 	// Reconfigure Proxy to new instance
 	t = time.Now()
-	m := pcsdk.NewCommandModify(config.MTD.Services[serviceUUID].ServicePort, config.MTD.Services[serviceUUID].ServiceIP, serviceUUID)
-	err = m.Execute(netip.AddrPortFrom(config.MTD.Services[serviceUUID].EntryIP, config.MTD.ManagementPort))
+	err = proxy.Modify(config.MTD.Services[serviceUUID].ServicePort, config.MTD.Services[serviceUUID].ServiceIP, serviceUUID)
 	if err != nil {
 		fmt.Printf("error executing modify command: %s\n", err)
 		return config

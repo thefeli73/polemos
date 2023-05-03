@@ -96,14 +96,13 @@ func indexAllInstances(config state.Config) state.Config {
 func createTunnels(config state.Config) {
 	for serviceUUID, service := range config.MTD.Services {
 		if service.AdminEnabled && service.Active {
-			s := pcsdk.NewCommandStatus()
-			err := s.Execute(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
+			proxy := pcsdk.BuildProxy(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
+			err := proxy.Status()
 			if err != nil {
 				continue
 			}
 			// Reconfigure Proxy to new instance
-			c := pcsdk.NewCommandCreate(service.EntryPort, service.ServicePort, service.ServiceIP, serviceUUID)
-			err = c.Execute(netip.AddrPortFrom(service.EntryIP, config.MTD.ManagementPort))
+			err = proxy.Create(service.EntryPort, service.ServicePort, service.ServiceIP, serviceUUID)
 			if err != nil {
 				continue
 			}
