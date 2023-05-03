@@ -92,7 +92,7 @@ type commandCreate struct {
 	IncomingPort    uint16     `json:"incoming_port"`
 	DestinationPort uint16     `json:"destination_port"`
 	DestinationIP   netip.Addr `json:"destination_ip"`
-	Id              string     `json:"id"`
+	ID              string     `json:"id"`
 }
 
 func create(iport uint16, oport uint16, oip netip.Addr, id state.CustomUUID) command {
@@ -105,7 +105,7 @@ func create(iport uint16, oport uint16, oip netip.Addr, id state.CustomUUID) com
 type commandModify struct {
 	DestinationPort uint16     `json:"destination_port"`
 	DestinationIP   netip.Addr `json:"destination_ip"`
-	Id              string     `json:"id"`
+	ID              string     `json:"id"`
 }
 
 func modify(oport uint16, oip netip.Addr, id state.CustomUUID) command {
@@ -116,7 +116,7 @@ func modify(oport uint16, oip netip.Addr, id state.CustomUUID) command {
 }
 
 type commandDelete struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 func delete(id state.CustomUUID) command {
