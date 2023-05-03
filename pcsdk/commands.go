@@ -41,6 +41,11 @@ func (p Proxy) Delete(id state.CustomUUID) error {
 	return err
 }
 
+func (p Proxy) Status() error {
+	_, err := p.execute(status())
+	return err
+}
+
 // TODO: status function returning map of tunnels
 
 func (p Proxy) execute(c command) (string, error) {
@@ -72,6 +77,7 @@ type command struct {
 	Create *commandCreate `json:"create,omitempty"`
 	Modify *commandModify `json:"modify,omitempty"`
 	Delete *commandDelete `json:"delete,omitempty"`
+	Status *commandStatus `json:"status,omitempty"`
 	Timestamp uint64	  `json:"timestamp,omitempty"`
 	Signature string	  `json:"signature,omitempty"`
 }
@@ -111,5 +117,16 @@ func delete(id state.CustomUUID) command {
 	d:= commandDelete{uuid.UUID.String(uuid.UUID(id))}
 	c:= command{}
 	c.Delete = &d
+	return c
+}
+
+
+type commandStatus struct {
+}
+
+func status() command {
+	d:= commandStatus{}
+	c:= command{}
+	c.Status = &d
 	return c
 }
