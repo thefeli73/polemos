@@ -50,7 +50,6 @@ func (p Proxy) execute(c command) (string, error) {
 	}
 
 	requestURL := fmt.Sprintf("http://%s:%d/command", p.url.Addr().String(), p.url.Port())
-	fmt.Println(requestURL)
 	bodyReader := bytes.NewReader(data)
 
 	res, err := http.DefaultClient.Post(requestURL, "application/json", bodyReader)
