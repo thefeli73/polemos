@@ -17,36 +17,42 @@ type response struct {
 	message string `json:"message"`
 }
 
+// Proxy owns the interfaces for the pcsdk.
 type Proxy struct {
 	signing_key string
 	url 		netip.AddrPort
 }
 
+// BuildProxy creates a proxy struct for the given url to easily interact with that proxy instance (create, edit, delete tunnels etc)
 func BuildProxy(control netip.AddrPort) Proxy {
 	return Proxy {"", control}
 }
 
+// Create a tunnel with the given parameters.
 func (p Proxy) Create(iport uint16, oport uint16, oip netip.Addr, id state.CustomUUID) error {
 	_, err := p.execute(create(iport, oport, oip, id))
 	return err
 }
 
+// Modify a tunnel with the given parameters.
 func (p Proxy) Modify(oport uint16, oip netip.Addr, id state.CustomUUID) error {
 	_, err := p.execute(modify(oport, oip, id))
 	return err
 }
 
+// Delete a tunnel with the given parameters.
 func (p Proxy) Delete(id state.CustomUUID) error {
 	_, err := p.execute(delete(id))
 	return err
 }
 
+// TODO: status function returning map of tunnels
+// Status returns a list of tunnels for the given proxy.
 func (p Proxy) Status() error {
 	_, err := p.execute(status())
 	return err
 }
 
-// TODO: status function returning map of tunnels
 
 func (p Proxy) execute(c command) (string, error) {
 	data, err := json.Marshal(c)
